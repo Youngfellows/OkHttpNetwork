@@ -17,16 +17,22 @@ import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.BitmapCallback;
 import com.zhy.http.okhttp.callback.FileCallBack;
 import com.zhy.http.okhttp.callback.GenericsCallback;
-import com.zhy.http.okhttp.callback.IGenericsSerializator;
 import com.zhy.http.okhttp.callback.StringCallback;
 import com.zhy.http.okhttp.cookie.CookieJarImpl;
 import com.zhy.sample_okhttp.pojo.Holiday;
 import com.zhy.sample_okhttp.pojo.News;
+import com.zhy.sample_okhttp.pojo.holiday.foreign.ForeignHoliday;
+import com.zhy.sample_okhttp.pojo.holiday.foreign.Item;
+import com.zhy.sample_okhttp.pojo.holiday.foreign.Start;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import okhttp3.Call;
 import okhttp3.CookieJar;
@@ -121,18 +127,48 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("StringFormatInvalid")
     public void getForeignHoliday(View view) {
-        String url = "http://www.zhiyun-tech.com/App/Rider-M/changelog-zh.txt";
+        //String url = "http://www.zhiyun-tech.com/App/Rider-M/changelog-zh.txt";
         //url="http://www.391k.com/api/xapi.ashx/info.json?key=bd_hyrzjjfb4modhj&size=10&page=1";
-        url = "https://www.googleapis.com/calendar/v3/calendars/zh.china%23holiday%40group.v.calendar.google.com/events?orderBy=updated&timeMax=2020-12-31T23:59:59Z&timeMin=2010-01-01T00:00:01Z&key=AIzaSyAhQp2relMY1ksHvYhXH2SaME-VqbSY8jw";
+        //url = "https://www.googleapis.com/calendar/v3/calendars/zh.china%23holiday%40group.v.calendar.google.com/events?orderBy=updated&timeMax=2020-12-31T23:59:59Z&timeMin=2010-01-01T00:00:01Z&key=AIzaSyAhQp2relMY1ksHvYhXH2SaME-VqbSY8jw";
 
-        url = "https://www.googleapis.com/calendar/v3/calendars/zh.china%23holiday%40group.v.calendar.google.com/events";
-        url = "https://www.googleapis.com/calendar/v3/calendars/zh.hong_kong%23holiday%40group.v.calendar.google.com/events";
+        //url = "https://www.googleapis.com/calendar/v3/calendars/zh.china%23holiday%40group.v.calendar.google.com/events";
+        //url = "https://www.googleapis.com/calendar/v3/calendars/zh.hong_kong%23holiday%40group.v.calendar.google.com/events";
 
 
-        String holidayCountry = "en.usa%23holiday%40group.v.calendar.google.com";
-        url = "https://www.googleapis.com/calendar/v3/calendars/en.usa%23holiday%40group.v.calendar.google.com/events";
-        String format = String.format(getResources().getString(R.string.holiday_host), holidayCountry);
-        Log.d(TAG, "getForeignHoliday: " + format);
+        //String holidayCountry = "en.usa%23holiday%40group.v.calendar.google.com";
+        //url = "https://www.googleapis.com/calendar/v3/calendars/en.usa%23holiday%40group.v.calendar.google.com/events";
+        //String format = String.format(getResources().getString(R.string.holiday_host), holidayCountry);
+
+        //Date date = new Date();
+        //Log.d(TAG, "getForeignHoliday: " + date);
+
+        Calendar calendar = Calendar.getInstance();
+        //calendar.setTime(date);
+        calendar.add(Calendar.YEAR, 1);
+        calendar.set(Calendar.MONTH, 0);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        Date maxTime = calendar.getTime();
+
+        calendar.add(Calendar.YEAR, -6);
+        Date minTime = calendar.getTime();
+
+        String maxTimestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(maxTime);
+        String minTimestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(minTime);
+
+        Log.d(TAG, "getForeignHoliday: " + maxTimestamp);
+        Log.d(TAG, "getForeignHoliday: " + minTimestamp);
+
+        String[] regions = this.getResources().getStringArray(R.array.holiday_regions);
+        String[] holidayIds = this.getResources().getStringArray(R.array.holiday_ids);
+        int index = new Random().nextInt(holidayIds.length);
+        String region = regions[index];
+        String holidayId = holidayIds[index];
+
+        String url = String.format(getResources().getString(R.string.holiday_host), holidayId);
+        Log.d(TAG, "getForeignHoliday: " + region + "," + holidayId);
+        Log.d(TAG, "getForeignHoliday: " + url);
 
         //"orderBy=updated&timeMax=2020-12-31T23:59:59Z&timeMin=2010-01-01T00:00:01Z&key=AIzaSyAhQp2relMY1ksHvYhXH2SaME-VqbSY8jw"
         OkHttpUtils
@@ -140,11 +176,39 @@ public class MainActivity extends AppCompatActivity {
                 .url(url)
                 //.id(100)
                 .addParams("orderBy", "updated")
-                .addParams("timeMax", "2020-12-31T23:59:59Z")
-                .addParams("timeMin", "2010-01-01T00:00:01Z")
+                //.addParams("timeMax", "2020-12-31T23:59:59Z")
+                //.addParams("timeMax", "2020-12-31T23:59:59Z")
+                .addParams("timeMax", maxTimestamp)
+                .addParams("timeMin", minTimestamp)
                 .addParams("key", "AIzaSyAhQp2relMY1ksHvYhXH2SaME-VqbSY8jw")
                 .build()
-                .execute(new StringCallback() {
+                .execute(new GenericsCallback<ForeignHoliday>(new JsonGenericsSerializator()) {
+                    @Override
+                    public void onError(Call call, Exception e, int id) {
+                        Log.e(TAG, "onError: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onResponse(ForeignHoliday response, int id) {
+                        Log.d(TAG, "onResponse: " + response.getSummary());
+                        List<Item> items = response.getItems();
+                        if (items != null) {
+                            //                            int size = items.size();
+                            //                            for (int i = 0; i < size; i++) {
+                            //                                Item item = items.get(i);
+                            //                            }
+
+                            for (Item item : items) {
+                                String summary = item.getSummary();
+                                Start start = item.getStart();
+                                if (start != null) {
+                                    String date = start.getDate();
+                                }
+                            }
+                        }
+                    }
+                })
+                /*.execute(new StringCallback() {
                     @Override
                     public void onError(Call call, Exception e, int id) {
                         Log.e(TAG, "onError: " + e.getMessage());
@@ -154,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(String response, int id) {
                         Log.d(TAG, "onResponse: " + response);
                     }
-                });
+                })*/;
     }
 
     public void getChinaHoliday2(View view) {
